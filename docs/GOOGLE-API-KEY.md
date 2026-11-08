@@ -1,6 +1,7 @@
 # Your Google Maps Platform key
 
-Volta plans trips with Google's Routes and Places APIs. It has no key of its own: you create one in your Google
+Volta plans trips with Google's Routes, Places and Elevation APIs. Elevation gives the climb along each route, which
+the battery estimate depends on. Volta has no key of its own: you create one in your Google
 account and paste it into the app. This takes about ten minutes the first time.
 
 ## 1. Create a project
@@ -20,6 +21,7 @@ APIs & Services → **Library**, then search for each and press **Enable**:
 
 - **Routes API**
 - **Places API (New)**
+- **Elevation API**
 
 ## 4. Create the key
 
@@ -29,11 +31,12 @@ APIs & Services → **Credentials** → **Create credentials** → **API key**. 
 
 Open the key you just made (**Edit API key**):
 
-- **API restrictions** → *Restrict key* → tick only **Routes API** and **Places API (New)**.
+- **API restrictions** → *Restrict key* → tick only **Routes API**, **Places API (New)** and
+  **Elevation API**.
 - **Application restrictions** → *Android apps* → **Add**:
   - Package name: `dev.irshadm.volta.oss`
-  - SHA-1 certificate fingerprint: the one for the APK you installed. For a release from this repository it's
-    listed on the Releases page. For your own build, run `./gradlew signingReport` and use the *debug* SHA-1.
+  - SHA-1 certificate fingerprint: the one for the APK you installed. For the APK from irshadm.dev/volta or the Releases
+    page it's `37:D0:35:23:81:B5:AB:2D:F9:42:28:70:BE:2E:07:3E:E8:32:9E:A2`. For your own build, run `./gradlew signingReport` and use the *debug* SHA-1.
 
 If you get the SHA-1 wrong, Volta's key check says *"The key is restricted to other Android apps"* and shows the
 package and SHA-1 it sent, so you can copy them exactly.

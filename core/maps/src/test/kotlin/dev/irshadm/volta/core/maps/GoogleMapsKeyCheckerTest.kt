@@ -22,14 +22,21 @@ class GoogleMapsKeyCheckerTest {
     @After fun stop() = server.close()
 
     private fun api() = GoogleApi(OkHttpClient(), identity) { savedKey }
-    private fun checker() = GoogleMapsKeyChecker(api(), placesBase = server.url("/places").toString(), routesBase = server.url("/routes").toString())
+    private fun checker() = GoogleMapsKeyChecker(
+        api(),
+        placesBase = server.url("/places").toString(),
+        routesBase = server.url("/routes").toString(),
+        elevationBase = server.url("/elevation/json").toString(),
+    )
+    private fun elevationOk() = ok("""{"results":[{"elevation":920.1}],"status":"OK"}""")
     private fun ok(body: String = "{}") = MockResponse.Builder().body(body).build()
     private fun denied(reason: String) = MockResponse.Builder().code(403)
         .body("""{"error":{"code":403,"message":"denied","status":"PERMISSION_DENIED","details":[{"reason":"$reason"}]}}""").build()
 
-    @Test fun `both APIs answering means the key passes`() = runTest {
+    @Test fun `every API answering means the key passes`() = runTest {
         server.enqueue(ok())
         server.enqueue(ok())
+        server.enqueue(elevationOk())
         val report = checker().check("  KEY123  ")
         assertTrue(report.passed)
 
@@ -40,11 +47,26 @@ class GoogleMapsKeyCheckerTest {
         assertEquals("dev.example.app", places.headers["X-Android-Package"])
         assertEquals("0A1B2C", places.headers["X-Android-Cert"])
         assertEquals("/routes/directions/v2:computeRoutes", server.takeRequest().url.encodedPath)
+        val elevation = server.takeRequest()
+        assertEquals("/elevation/json", elevation.url.encodedPath)
+        assertEquals("KEY123", elevation.url.queryParameter("key"))
+        assertEquals("dev.example.app", elevation.headers["X-Android-Package"])
+    }
+
+    @Test fun `Elevation refusing with HTTP 200 still fails the key`() = runTest {
+        server.enqueue(ok())
+        server.enqueue(ok())
+        server.enqueue(ok("""{"error_message":"This API is not activated on your API project.","results":[],"status":"REQUEST_DENIED"}"""))
+        val report = checker().check("KEY123")
+        val (api, failure) = report.firstFailure!!
+        assertEquals(MapsApi.Elevation, api)
+        assertEquals(KeyProblem.ApiNotEnabled, failure.problem)
     }
 
     @Test fun `a refused API is reported with its problem`() = runTest {
         server.enqueue(ok())
         server.enqueue(denied("SERVICE_DISABLED"))
+        server.enqueue(elevationOk())
         val report = checker().check("KEY123")
         assertFalse(report.passed)
         val (api, failure) = report.firstFailure!!

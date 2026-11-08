@@ -98,7 +98,7 @@ fun MapsKeyScreen(
         Text(if (state.passed) "Key works" else "Add your Google Maps key", style = MaterialTheme.typography.headlineSmall, color = VoltaColors.Text)
         if (!state.passed) {
             Text(
-                "Trip plans, charger search and food stops use Google's Routes and Places APIs. Volta has no server and no key of its own, so you bring yours. Google's monthly free usage normally covers one person.",
+                "Trip plans, charger search and food stops use Google's Routes, Places and Elevation APIs. Volta has no server and no key of its own, so you bring yours. Google's monthly free usage normally covers one person.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = VoltaColors.TextSoft,
             )

@@ -4,6 +4,7 @@ package dev.irshadm.volta.core.maps
 enum class MapsApi(val label: String) {
     Places("Places API (New)"),
     Routes("Routes API"),
+    Elevation("Elevation API"),
 }
 
 /** The outcome for one API. */
@@ -28,13 +29,15 @@ fun interface MapsKeyChecker {
  * Checks a key with the cheapest real request each API accepts:
  * - Places: a Text Search asking only for place IDs (the free "IDs only" field mask).
  * - Routes: a two-point route asking only for the distance.
- * Both are real calls, so they catch every problem a trip plan would hit: disabled APIs, API restrictions,
+ * - Elevation: the height of one point, for the hills along a route.
+ * All are real calls, so they catch every problem a trip plan would hit: disabled APIs, API restrictions,
  * app restrictions and billing.
  */
 class GoogleMapsKeyChecker(
     private val api: GoogleApi,
     private val placesBase: String = "https://places.googleapis.com/v1",
     private val routesBase: String = "https://routes.googleapis.com",
+    private val elevationBase: String = "https://maps.googleapis.com/maps/api/elevation/json",
 ) : MapsKeyChecker {
 
     override suspend fun check(key: String): KeyCheckReport {
@@ -43,6 +46,7 @@ class GoogleMapsKeyChecker(
             linkedMapOf(
                 MapsApi.Places to attempt { api.post("$placesBase/places:searchText", PLACES_PROBE, "places.id", trimmed) },
                 MapsApi.Routes to attempt { api.post("$routesBase/directions/v2:computeRoutes", ROUTES_PROBE, "routes.distanceMeters", trimmed) },
+                MapsApi.Elevation to attempt { api.getLegacy("$elevationBase?locations=12.9716,77.5946", trimmed) },
             ),
         )
     }
