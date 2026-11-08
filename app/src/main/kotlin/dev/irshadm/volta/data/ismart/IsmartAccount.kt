@@ -7,6 +7,7 @@ import dev.irshadm.volta.core.domain.SignInException
 import dev.irshadm.volta.core.ismart.IsmartException
 import dev.irshadm.volta.core.ismart.LoginRejectedException
 import dev.irshadm.volta.core.ismart.LoginThrottledException
+import dev.irshadm.volta.core.ismart.MfaRequiredException
 import dev.irshadm.volta.core.ismart.NotOwnerException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,7 @@ class IsmartAccount @Inject constructor(private val ismart: IsmartRepository) : 
 
 /** Maps the client's exceptions to the cases the sign-in screen shows differently. */
 internal fun signInErrorOf(e: Throwable): SignInError = when (e) {
+    is MfaRequiredException -> SignInError.MfaRequired
     is LoginRejectedException -> SignInError.Rejected(e.message ?: "MG rejected the sign-in")
     is LoginThrottledException -> SignInError.Throttled(e.retryAtMillis)
     is NotOwnerException -> SignInError.NotOwner

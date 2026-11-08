@@ -118,6 +118,7 @@ class IsmartRepository @Inject constructor(
             val car = CarIdentity.of(vehicles.firstOrNull { it.vin == client.vin } ?: vehicles.firstOrNull())
             carPrefs.edit().putString(CAR_NAME, car.name).apply()
             _car.value = car
+            runCatching { usePackOf(car.model) }
         } catch (e: Exception) {
             secure.credentials = null
             secure.save(null)
@@ -188,6 +189,20 @@ class IsmartRepository @Inject constructor(
         }
     }
 
+    /**
+     * For a model whose energy reading isn't trusted: replaces a battery size that is still the Windsor default, or
+     * too big for this car (learned from that reading before), with the model's known pack. A smaller size someone set
+     * by hand stays.
+     */
+    private suspend fun usePackOf(model: CarModel) {
+        val pack = model.packKwh?.takeIf { !model.reportsPackEnergy } ?: return
+        val profile = settings.vehicleProfile.first()
+        val current = profile.usableCapacityKwh
+        if (current == dev.irshadm.volta.core.model.VehicleProfile().usableCapacityKwh || current > pack * 1.1) {
+            settings.save(profile.copy(usableCapacityKwh = pack))
+        }
+    }
+
     fun setPin(pin: String) {
         secure.pinHash = MgCrypto.pinHash(pin)
         _pinSaved.value = true
@@ -251,7 +266,13 @@ class IsmartRepository @Inject constructor(
             // Only a level this read brought; one carried over from the last read is already stored.
             if (status.soc !== before?.soc) status.soc?.value?.let { socRepository.add(it) }
             // The pack size comes from the car, not the Windsor 38 default: SoC and energy from the same charge frame.
-            r.charge?.let { c -> c.socPercent?.let { soc -> runCatching { settings.learnCapacity(soc, c.batteryEnergyKwh) } } }
+            // Only for a car whose energy reading is known to be in kWh; the others start from their known pack.
+            val model = _car.value.model
+            if (model.reportsPackEnergy) {
+                r.charge?.let { c -> c.socPercent?.let { soc -> runCatching { settings.learnCapacity(soc, c.batteryEnergyKwh) } } }
+            } else {
+                runCatching { usePackOf(model) }
+            }
             runCatching { drives.onReading(status, before) }
             runCatching { dev.irshadm.volta.service.smart.SmartPrecool.onCarReading(context, status, settings) }
             runCatching { dev.irshadm.volta.service.CarCheckWorker.evaluate(context, status) }
@@ -304,7 +325,7 @@ class IsmartRepository @Inject constructor(
                 it.coerceIn(0.0, 100.0),
                 SocSource.ISMART,
                 (c?.statusTime ?: s.statusTime) * 1000,
-                batteryEnergyKwh = c?.batteryEnergyKwh,
+                batteryEnergyKwh = c?.batteryEnergyKwh?.takeIf { _car.value.model.reportsPackEnergy },
                 carRangeKm = c?.rangeKm ?: s.rangeKm,
                 odometerKm = s.odometerKm,
             )
@@ -353,6 +374,7 @@ class IsmartRepository @Inject constructor(
     }
 
     private fun friendly(e: Throwable): String = when (e) {
+        is dev.irshadm.volta.core.ismart.MfaRequiredException -> MFA_ADVICE
         is LoginRejectedException -> "MG rejected the sign-in: ${e.message}"
         is LoginThrottledException -> e.message ?: "Signed in too often this hour"
         is SignedOutException -> "Signed out by another app"
@@ -395,3 +417,6 @@ internal fun isDriving(powerMode: Int, engineStatus: Int, climateRunning: Boolea
 }
 
 private const val FIRST_READ_TRIES = 6
+
+/** What to do when the account has multi-factor login on; shown wherever a sign-in or reconnect fails for that reason. */
+const val MFA_ADVICE = "Multi-factor login is on for this account, and Volta can't receive MG's SMS code. Turn it off in the MG app's security settings, then sign in again."

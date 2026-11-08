@@ -2,6 +2,7 @@ package dev.irshadm.volta.core.maps
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -41,5 +42,31 @@ class GoogleApi(
         } catch (e: IOException) {
             throw GoogleApiException(KeyProblem.Network, httpCode = 0, googleMessage = e.message ?: "No connection", cause = e)
         }
+    }
+
+    /**
+     * GETs a legacy Maps endpoint (Elevation) with an explicit [key]. These answer HTTP 200 even when they refuse, with
+     * a `status` other than OK in the body, so that case is turned into the same [GoogleApiException] as the newer APIs.
+     */
+    suspend fun getLegacy(url: String, key: String): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url.toHttpUrl().newBuilder().addQueryParameter("key", key).build())
+            .header("X-Android-Package", identity.packageName)
+            .header("X-Android-Cert", identity.sha1Hex)
+            .build()
+        try {
+            http.newCall(request).execute().use { res ->
+                val text = res.body.string()
+                if (!res.isSuccessful || legacyStatus(text) !in LEGACY_OK) throw GoogleErrorParser.parse(res.code, text)
+                text
+            }
+        } catch (e: IOException) {
+            throw GoogleApiException(KeyProblem.Network, httpCode = 0, googleMessage = e.message ?: "No connection", cause = e)
+        }
+    }
+
+    private fun legacyStatus(body: String): String? = Regex("\"status\"\\s*:\\s*\"([A-Z_]+)\"").find(body)?.groupValues?.get(1)
+
+    private companion object {
+        val LEGACY_OK = setOf("OK", "ZERO_RESULTS")
     }
 }

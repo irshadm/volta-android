@@ -32,6 +32,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## saic-python-mqtt-gateway
+
+Volta reads tyre pressures on cars other than the Windsor in 0.04 bar steps, and treats their pack-energy figure as
+needing a known pack size, following https://github.com/SAIC-iSmart-API/saic-python-mqtt-gateway (MIT licence). No
+code is copied from it.
+
 ## Lucide icons
 
 The app's icons in `core/designsystem/.../VoltaIcons.kt` are from Lucide, https://lucide.dev, used under the
