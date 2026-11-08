@@ -18,6 +18,9 @@ sealed interface SignInError {
     /** Too many sign-ins this hour; the next one is allowed at [retryAtMillis]. */
     data class Throttled(val retryAtMillis: Long) : SignInError
 
+    /** Multi-factor login is on for the account; MG wants an SMS code Volta can't receive. */
+    data object MfaRequired : SignInError
+
     /** The account is a shared (secondary) one, which gets no battery data. */
     data object NotOwner : SignInError
 

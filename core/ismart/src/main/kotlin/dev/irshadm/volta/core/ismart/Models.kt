@@ -55,7 +55,6 @@ data class VehicleSnapshot(
     val headingDeg: Int? = null,
 ) {
     companion object {
-        private fun psi(raw: Int?) = raw?.takeIf { it in 1..255 }?.let { Math.round(it * 0.2 * 10) / 10.0 }
 
         fun fromStatus(f: Tap.StatusFrame): VehicleSnapshot {
             val b = f.basic
@@ -68,7 +67,7 @@ data class VehicleSnapshot(
             ) {
                 driverWindow = false
             }
-            val tyres = listOf(psi(b.tyreFrontLeft), psi(b.tyreFrontRight), psi(b.tyreRearLeft), psi(b.tyreRearRight))
+            val tyres = TyreScale.psi(listOf(b.tyreFrontLeft, b.tyreFrontRight, b.tyreRearLeft, b.tyreRearRight))
             val hasFix = f.position.gpsStatus >= 2
             return VehicleSnapshot(
                 statusTime = f.statusTime,
@@ -172,4 +171,29 @@ enum class RemoteCommand(val label: String, val type: Int, val params: List<Pair
     // Windows: params 9–12 pick the windows (this car's WINDOW mask is 1100 = the two front ones), 13 = 3 open / 0 close.
     WindowsOpen("Open windows", 3, listOf(8 to 0, 9 to 1, 10 to 1, 11 to 0, 12 to 0, 13 to 3)),
     WindowsClose("Close windows", 3, listOf(8 to 0, 9 to 1, 10 to 1, 11 to 0, 12 to 0, 13 to 0)),
+}
+
+/**
+ * Tyre pressures arrive as one raw number per wheel, scaled differently by car. The Windsor counts in 0.2 psi steps
+ * (169 is 33.8 psi). The ZS EV and other SAIC cars count in 0.04 bar steps, as SAIC's own MQTT gateway reads them
+ * (70 is 2.8 bar, about 41 psi). On the Windsor's scale a number under 100 is under 20 psi, so when every wheel reads
+ * under 100 the car is using the bar scale. A flat tyre on a SAIC car still reads as one low wheel among normal ones.
+ */
+internal object TyreScale {
+    private const val PSI_PER_UNIT = 0.2
+    private const val BAR_PER_UNIT = 0.04
+    private const val PSI_PER_BAR = 14.5038
+    private const val BAR_SCALE_MAX_RAW = 99
+
+    fun psi(raws: List<Int?>): List<Double?> {
+        val valid = raws.map { raw -> raw?.takeIf { it in 1..255 } }
+        val present = valid.filterNotNull()
+        val barScale = present.isNotEmpty() && present.all { it <= BAR_SCALE_MAX_RAW }
+        return valid.map { raw ->
+            raw?.let {
+                val psi = if (barScale) it * BAR_PER_UNIT * PSI_PER_BAR else it * PSI_PER_UNIT
+                Math.round(psi * 10) / 10.0
+            }
+        }
+    }
 }

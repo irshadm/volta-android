@@ -14,16 +14,23 @@ internal const val CAR_NAME = "car.name"
  * one model sells name it: FC and Play / Plush / Pace are Comets, Excite Pro and Exclusive Plus are ZS EVs, Exclusive Pro
  * and Essence Pro are Windsor Pros. Executive, Excite and Exclusive are sold on more than one model, so they stay
  * MG's own name.
+ *
+ * Only the Windsor's pack-energy reading has been checked against the car, so Volta learns the Windsor's battery size
+ * from it. Other models report that figure on a different scale (a ZS EV's 50.3 kWh pack read as 71.8), so they use
+ * [packKwh], the pack MG India sells, until their readings are checked. Null means not known yet.
  */
-enum class CarModel(val label: String?, private val pattern: Regex?) {
+enum class CarModel(val label: String?, private val pattern: Regex?, val packKwh: Double? = null) {
     Windsor("Windsor", Regex("windsor|\\bEQ100\\b", RegexOption.IGNORE_CASE)),
-    Comet("Comet EV", Regex("comet|\\bEC32\\b|\\bE230\\b|\\b(?:excite|exclusive)\\s*fc\\b|^\\s*(?:play|plush|pace)\\b", RegexOption.IGNORE_CASE)),
-    ZsEv("ZS EV", Regex("^(?!.*astor).*(?:\\bzs\\b|\\bexcite\\s*pro\\b|\\bexclusive\\s*(?:plus|\\+))", RegexOption.IGNORE_CASE)),
-    M9("M9", Regex("\\bm9\\b", RegexOption.IGNORE_CASE)),
-    Cyberster("Cyberster", Regex("cyberster", RegexOption.IGNORE_CASE)),
+    Comet("Comet EV", packKwh = 17.3, pattern = Regex("comet|\\bEC32\\b|\\bE230\\b|\\b(?:excite|exclusive)\\s*fc\\b|^\\s*(?:play|plush|pace)\\b", RegexOption.IGNORE_CASE)),
+    ZsEv("ZS EV", packKwh = 50.3, pattern = Regex("^(?!.*astor).*(?:\\bzs\\b|\\bexcite\\s*pro\\b|\\bexclusive\\s*(?:plus|\\+))", RegexOption.IGNORE_CASE)),
+    M9("M9", packKwh = 90.0, pattern = Regex("\\bm9\\b", RegexOption.IGNORE_CASE)),
+    Cyberster("Cyberster", packKwh = 77.0, pattern = Regex("cyberster", RegexOption.IGNORE_CASE)),
     Tomahawk("Hector Tomahawk EV", Regex("tomahawk", RegexOption.IGNORE_CASE)),
     Other(null, null),
     ;
+
+    /** The car's own pack-energy reading is in kWh. Only checked on the Windsor so far. */
+    val reportsPackEnergy: Boolean get() = this == Windsor
 
     companion object {
         fun of(text: String): CarModel = entries.firstOrNull { it.pattern?.containsMatchIn(text) == true }

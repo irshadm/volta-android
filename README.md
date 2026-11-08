@@ -24,7 +24,12 @@ There is no Volta server and no analytics: your login and key stay on your phone
 
 Only tested on the MG Windsor EV so far. The battery size is measured from the car after a few reads, so a Windsor Pro's larger pack is picked up on its own. Other MG EVs on i-SMART should sign in and show their data, but none has been
 run yet. The Comet EV, ZS EV, M9, Cyberster and Hector Tomahawk EV have their own pictures, with only the 360° view still
-pending, and anything else shows the Windsor. Their battery size is measured the same way; efficiency can be set in Settings → Car until model profiles arrive.
+pending, and anything else shows the Windsor. Their battery size starts from the pack MG India sells (Comet 17.3, ZS EV 50.3, M9 90 and Cyberster
+77 kWh), and Tomahawk owners can set theirs in Settings → Car. Tyre pressures use SAIC's scale on cars other than the
+Windsor. Efficiency can be set in Settings → Car until model profiles arrive.
+
+If multi-factor login is on for your MG account, Volta can't sign in, because it can't receive MG's SMS code. Turn it
+off in the MG app's security settings first.
 
 ## What you need
 
@@ -82,6 +87,10 @@ A multi-module, layered codebase: pure-Kotlin domain and API modules, Android da
 Volta's connection to the car is a Kotlin port of
 [mg-ismart-india-client](https://github.com/john-lazarus/mg-ismart-india-client) by **John Lazarus**, who worked out
 how the MG India app talks to MG's servers. None of the car features would exist without it. Thank you, John.
+
+Tyre pressure and battery handling for cars other than the Windsor follow
+[saic-python-mqtt-gateway](https://github.com/SAIC-iSmart-API/saic-python-mqtt-gateway) by the SAIC-iSmart-API
+project.
 
 Icons are from [Lucide](https://lucide.dev). Full licence texts are in [NOTICE.md](NOTICE.md).
 

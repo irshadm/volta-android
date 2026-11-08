@@ -30,7 +30,16 @@ open class IsmartException(message: String, cause: Throwable? = null) : Exceptio
 }
 
 /** Server rejected the credentials (bad password, unregistered, daily limit). Never retried automatically. */
-class LoginRejectedException(message: String) : IsmartException(message)
+open class LoginRejectedException(message: String) : IsmartException(message)
+
+/**
+ * Multi-factor login is on for the account, so MG wants an SMS code this client can't supply. Like any rejection it is
+ * never retried; it clears once the owner turns multi-factor login off in the MG app.
+ */
+class MfaRequiredException(message: String) : LoginRejectedException(message)
+
+/** MG's rejection text when the account has multi-factor login on (the upstream client matches it the same way). */
+internal fun mfaRequired(message: String): Boolean = Regex("multi[\\s-]?factor|\\bmfa\\b", RegexOption.IGNORE_CASE).containsMatchIn(message)
 
 /** The session was taken (the MG app signed in) or expired; the saved login is still good. */
 open class SignedOutException(message: String = "Signed out by another app") : IsmartException(message)
@@ -140,7 +149,7 @@ class MgIsmartClient(
                         return r.session
                     }
 
-                    is LoginFrame.Result.Rejected -> throw LoginRejectedException(r.message)
+                    is LoginFrame.Result.Rejected -> throw if (mfaRequired(r.message)) MfaRequiredException(r.message) else LoginRejectedException(r.message)
                 }
             } catch (e: LoginRejectedException) {
                 throw e // each POST counts against the daily quota

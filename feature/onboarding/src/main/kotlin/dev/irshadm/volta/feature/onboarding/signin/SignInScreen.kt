@@ -154,6 +154,7 @@ private fun CarHero() {
 private fun errorTitle(error: SignInError) = when (error) {
     is SignInError.Rejected -> "MG rejected the sign-in"
     is SignInError.Throttled -> "Too many sign-ins this hour"
+    SignInError.MfaRequired -> "Multi-factor login is on"
     SignInError.NotOwner -> "This is a shared account"
     SignInError.Offline -> "Can't reach MG"
     is SignInError.Other -> "Sign-in didn't work"
@@ -162,6 +163,7 @@ private fun errorTitle(error: SignInError) = when (error) {
 private fun errorBody(error: SignInError) = when (error) {
     is SignInError.Rejected -> error.message
     is SignInError.Throttled -> "To protect your account, Volta waits until ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(error.retryAtMillis))} before trying again."
+    SignInError.MfaRequired -> "MG wants an SMS code for this account, and Volta can't receive it yet. In the MG app, turn off multi-factor login in the security settings, then sign in here again."
     SignInError.NotOwner -> "Battery and charging data only reach the owner's account. Sign in with the number the car is registered to."
     SignInError.Offline -> "Check your connection and try again."
     is SignInError.Other -> error.message
