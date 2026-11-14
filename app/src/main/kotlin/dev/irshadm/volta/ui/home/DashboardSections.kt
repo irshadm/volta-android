@@ -162,9 +162,11 @@ fun carAlerts(v: VehicleStatus, now: Long, waitMin: Int, tyreChecks: List<TyreCa
     }
     v.auxBatteryVolts?.value?.takeIf { it < 11.8 }?.let { add(CarAlert(Tier.Check, "Weak 12 V", "12 V battery weak (%.1f V) · a drive usually tops it up".format(it))) }
     if (v.parked() && v.lights?.value?.dipped == true) add(CarAlert(Tier.Check, "Lights", "Headlights on while parked"))
-    // The car's own warnings arrive as numbers; the ones we know get names (4 = tyre pressure, as the car shows it).
+    // The car's own warnings arrive as numbers; only the ones we know become alerts (4 = tyre pressure, as the car
+    // shows it). Other models fill the list with codes nobody has named, many of them set during a normal drive, so
+    // those stay out of the count and show as one quiet "Car codes" line in the details instead.
     val tyreAlready = any { it.short == "Tyres" }
-    v.warningCodes?.value.orEmpty().forEach { code ->
+    v.warningCodes?.value.orEmpty().distinct().filter { it in KNOWN_WARNING_CODES }.forEach { code ->
         when (code) {
             4 -> if (!tyreAlready) {
                 add(
@@ -176,11 +178,15 @@ fun carAlerts(v: VehicleStatus, now: Long, waitMin: Int, tyreChecks: List<TyreCa
                     ),
                 )
             }
-
-            else -> add(CarAlert(Tier.Check, "Warning", "The car reports warning $code"))
         }
     }
 }
+
+/** Warning codes Volta can name. Everything else is listed, not alerted on. */
+internal val KNOWN_WARNING_CODES = setOf(4)
+
+/** The car's codes Volta can't name, sorted, while parked only: during a drive they're mostly normal driving signals. */
+internal fun otherCarCodes(v: VehicleStatus): List<Int> = if (!v.parked()) emptyList() else v.warningCodes?.value.orEmpty().filter { it !in KNOWN_WARNING_CODES }.distinct().sorted()
 
 private fun lowestTyre(t: TyrePressures): String = listOf(
     "Front-left tyre" to t.frontLeft,
@@ -894,6 +900,7 @@ private fun StatusDetails(v: VehicleStatus, hero: dev.irshadm.volta.ui.component
             Column(Modifier.weight(1f)) {
                 checks(v).forEach { CheckRow(it.name, it.value, it.bad) }
                 v.handbrakeOn?.value?.let { CheckRow("Handbrake", if (it) "On" else "Off", false) }
+                otherCarCodes(v).takeIf { it.isNotEmpty() }?.let { CheckRow("Car codes", it.joinToString(", "), false) }
             }
         }
     }
