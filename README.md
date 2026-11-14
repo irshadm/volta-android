@@ -22,8 +22,8 @@ There is no Volta server and no analytics: your login and key stay on your phone
 - **Smart pre-cool:** suggests cooling the car before you walk out. It always asks first.
 - **Android Auto** and a home-screen widget.
 
-Only tested on the MG Windsor EV so far. The battery size is measured from the car after a few reads, so a Windsor Pro's larger pack is picked up on its own. Other MG EVs on i-SMART should sign in and show their data, but none has been
-run yet. The Comet EV, ZS EV, M9, Cyberster and Hector Tomahawk EV have their own pictures, with only the 360° view still
+Tested on the MG Windsor EV, and owners have confirmed it works on the Comet EV and ZS EV. The battery size is measured from the car after a few reads, so a Windsor Pro's larger pack is picked up on its own. The M9, Cyberster and Hector Tomahawk EV
+should sign in and show their data, but nobody has run Volta on one yet. Each of these cars has its own picture, with only the 360° view still
 pending, and anything else shows the Windsor. Their battery size starts from the pack MG India sells (Comet 17.3, ZS EV 50.3, M9 90 and Cyberster
 77 kWh), and Tomahawk owners can set theirs in Settings → Car. Tyre pressures use SAIC's scale on cars other than the
 Windsor. Efficiency can be set in Settings → Car until model profiles arrive.
