@@ -21,12 +21,15 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -857,6 +860,8 @@ private fun ElectricityPage(vm: SettingsViewModel) {
     Group {
         InfoRow("Home location", if (e.hasHome) "Set · Places" else "Not set — Places", if (e.hasHome) VoltaColors.Green else VoltaColors.Amber)
         Divider()
+        BilledEveryRow(t.billingMonths) { vm.saveTariff(t.copy(billingMonths = it)) }
+        Divider()
         StepperRow(
             "Household units per bill",
             "${e.householdUnitsPerCycle.roundToInt()}",
@@ -872,17 +877,20 @@ private fun ElectricityPage(vm: SettingsViewModel) {
             { vm.saveEnergy(e.copy(billCycleStartDay = (e.billCycleStartDay - 1).coerceIn(1, 28))) },
             { vm.saveEnergy(e.copy(billCycleStartDay = (e.billCycleStartDay + 1).coerceIn(1, 28))) },
         )
-        Divider()
         // Which months the cycle starts in; with a 2-month bill only the parity matters, but the month reads better.
-        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-        val cycleMonths = (0 until 12 / t.billingMonths.coerceAtLeast(1)).map { months[(e.billCycleStartMonth - 1 + it * t.billingMonths) % 12] }.joinToString(", ")
-        StepperRow(
-            "Latest cycle began in",
-            months[(e.billCycleStartMonth - 1).coerceIn(0, 11)],
-            "Every ${t.billingMonths} months: $cycleMonths",
-            { vm.saveEnergy(e.copy(billCycleStartMonth = (e.billCycleStartMonth - 2).mod(12) + 1)) },
-            { vm.saveEnergy(e.copy(billCycleStartMonth = e.billCycleStartMonth % 12 + 1)) },
-        )
+        // A monthly cycle starts every month, so there's nothing to choose.
+        if (t.billingMonths > 1) {
+            Divider()
+            val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+            val cycleMonths = (0 until 12 / t.billingMonths.coerceAtLeast(1)).map { months[(e.billCycleStartMonth - 1 + it * t.billingMonths) % 12] }.joinToString(", ")
+            StepperRow(
+                "Latest cycle began in",
+                months[(e.billCycleStartMonth - 1).coerceIn(0, 11)],
+                "Every ${t.billingMonths} months: $cycleMonths",
+                { vm.saveEnergy(e.copy(billCycleStartMonth = (e.billCycleStartMonth - 2).mod(12) + 1)) },
+                { vm.saveEnergy(e.copy(billCycleStartMonth = e.billCycleStartMonth % 12 + 1)) },
+            )
+        }
     }
     Label("Electricity tariff (per month)")
     Group {
@@ -913,6 +921,27 @@ private fun ElectricityPage(vm: SettingsViewModel) {
             color = VoltaColors.Gold,
             modifier = Modifier.clickable { vm.saveTariff(t.copy(verifiedOn = SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date()))) },
         )
+    }
+}
+
+/** "Billed every  Month | 2 months". Switching converts the household units, so the same use isn't counted twice. */
+@Composable
+private fun BilledEveryRow(months: Int, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Billed every", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Row(Modifier.clip(RoundedCornerShape(12.dp)).background(VoltaColors.SurfaceHigh).padding(3.dp).selectableGroup()) {
+            listOf(1 to "Month", 2 to "2 months").forEach { (n, label) ->
+                val on = n == months
+                Box(
+                    Modifier.clip(RoundedCornerShape(9.dp)).background(if (on) VoltaColors.Champagne else Color.Transparent)
+                        .selectable(selected = on, role = Role.RadioButton) { if (!on) onChange(n) }
+                        .heightIn(min = 42.dp).padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = if (on) VoltaColors.GoldInk else VoltaColors.TextSoft, maxLines = 1)
+                }
+            }
+        }
     }
 }
 

@@ -344,7 +344,7 @@ private fun BillCard(r: EnergyReport, state: EnergyUiState, onSettings: () -> Un
     val year = Calendar.getInstance().get(Calendar.YEAR).toString()
     VoltaCard(modifier.fillMaxWidth(), radius = 22.dp, padding = PaddingValues(18.dp)) {
         Row {
-            Text("Electricity bill · ${t.billingMonths}-month cycle", style = MaterialTheme.typography.bodySmall, color = VoltaColors.Muted, modifier = Modifier.weight(1f).alignByBaseline())
+            Text("Electricity bill · ${if (t.billingMonths == 1) "monthly" else "${t.billingMonths}-month cycle"}", style = MaterialTheme.typography.bodySmall, color = VoltaColors.Muted, modifier = Modifier.weight(1f).alignByBaseline())
             Text(
                 t.verifiedOn?.let { "rates ${it.removeSuffix(" $year")}" } ?: "sample rates",
                 style = MaterialTheme.typography.labelSmall,

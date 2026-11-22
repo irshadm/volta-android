@@ -1,5 +1,6 @@
 package dev.irshadm.volta.core.model
 
+import java.time.LocalDate
 import kotlin.math.max
 
 /**
@@ -63,4 +64,20 @@ data class EnergySettings(
     val dcThresholdKw: Double = 15.0,
 ) {
     val hasHome: Boolean get() = homeLat != null && homeLng != null
+
+    /**
+     * When the bill cycle containing [today] began: the start day in the latest month on the cycle's grid. A 2-month
+     * cycle anchored on October starts on 20 Oct, 20 Dec, 20 Feb and so on; a monthly one starts every month.
+     */
+    fun cycleStart(today: LocalDate, billingMonths: Int): LocalDate {
+        var month = today.withDayOfMonth(1)
+        if (today.dayOfMonth < billCycleStartDay.coerceAtMost(today.lengthOfMonth())) month = month.minusMonths(1)
+        while (Math.floorMod(month.monthValue - billCycleStartMonth, billingMonths) != 0) month = month.minusMonths(1)
+        return month.withDayOfMonth(billCycleStartDay.coerceAtMost(month.lengthOfMonth()))
+    }
+
+    companion object {
+        /** The same household use, told per cycle of [to] months instead of [from]. */
+        fun unitsForCycle(units: Double, from: Int, to: Int): Double = units * to / from
+    }
 }

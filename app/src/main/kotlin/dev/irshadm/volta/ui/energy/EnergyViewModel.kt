@@ -81,13 +81,9 @@ class EnergyViewModel @Inject constructor(
 
             Period.Custom -> s.customFrom to s.customTo
 
-            // The most recent cycle start: the start day in the latest month that sits on the cycle's grid (a 2-month
-            // cycle anchored on October starts on 20 Oct, 20 Dec, 20 Feb, ...).
             Period.Cycle -> {
-                if (c.get(Calendar.DAY_OF_MONTH) < e.billCycleStartDay) c.add(Calendar.MONTH, -1)
-                c.set(Calendar.DAY_OF_MONTH, e.billCycleStartDay.coerceAtMost(c.getActualMaximum(Calendar.DAY_OF_MONTH)))
-                while (Math.floorMod(c.get(Calendar.MONTH) + 1 - e.billCycleStartMonth, t.billingMonths) != 0) c.add(Calendar.MONTH, -1)
-                c.timeInMillis to now
+                val zone = java.time.ZoneId.systemDefault()
+                e.cycleStart(java.time.LocalDate.now(zone), t.billingMonths).atStartOfDay(zone).toInstant().toEpochMilli() to now
             }
         }
     }

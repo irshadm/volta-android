@@ -172,8 +172,13 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
         )
     }
 
+    /** A new cycle length converts the household units in the same write, so the two never disagree. */
     suspend fun saveTariff(t: Tariff) {
         store.edit { p ->
+            val months = p[TARIFF_MONTHS] ?: Tariff().billingMonths
+            if (months != t.billingMonths) {
+                p[HOUSEHOLD] = EnergySettings.unitsForCycle(p[HOUSEHOLD] ?: EnergySettings().householdUnitsPerCycle, months, t.billingMonths)
+            }
             p[TARIFF_TELE] = t.telescopic.joinToString(";") { "${it.first}:${it.second}" }
             p[TARIFF_FLAT] = t.nonTelescopic.joinToString(";") { "${it.first}:${it.second}" }
             p[TARIFF_DUTY] = t.dutyPercent
